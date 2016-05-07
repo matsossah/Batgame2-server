@@ -4,6 +4,7 @@ import { ParseServer } from 'parse-server';
 
 const {
   DATABASE_URI,
+  MONGODB_URI,
   APP_ID,
   CLIENT_KEY,
   MASTER_KEY,
@@ -15,7 +16,7 @@ const serverURL = `http://${HOST}:${PORT}/parse`;
 
 const api = new ParseServer({
   cloud: r('./cloud/main.js'),
-  databaseURI: DATABASE_URI,
+  databaseURI: DATABASE_URI || MONGODB_URI,
   appId: APP_ID,
   clientKey: CLIENT_KEY,
   masterKey: MASTER_KEY,
