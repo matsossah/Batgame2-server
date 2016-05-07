@@ -10,12 +10,12 @@ On OSX:
 brew update
 brew install mongodb
 brew services start mongodb
-sudo npm install -g parse-dashboard # If you want to use the dashboard
 ```
 
 ```
 git clone https://github.com/matsossah/Batgame2-server
 cd Batgame2-server
+sudo npm install -g parse-dashboard # If you want to use the dashboard
 npm install
 ```
 
