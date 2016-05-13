@@ -8,6 +8,7 @@ const {
   APP_ID,
   CLIENT_KEY,
   MASTER_KEY,
+  FACEBOOK_APP_ID,
   HOST,
   PORT,
 } = process.env;
@@ -20,6 +21,7 @@ const api = new ParseServer({
   appId: APP_ID,
   clientKey: CLIENT_KEY,
   masterKey: MASTER_KEY,
+  facebookAppIds: [FACEBOOK_APP_ID],
   serverURL,
 });
 

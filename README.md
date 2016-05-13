@@ -27,6 +27,7 @@ You must first define the following environment variables:
 * `APP_ID` The ID of the app.
 * `CLIENT_KEY` The app's client key (public).
 * `MASTER_KEY` The app's master key (private).
+* `FACEBOOK_APP_ID` Facebook app id.
 * `HOST` The server's host name.
 * `PORT` Port the app should listen on.
 
@@ -37,6 +38,7 @@ export DATABASE_URI="mongodb://localhost:27017/dev"
 export APP_ID="MyApp"
 export CLIENT_KEY="1234"
 export MASTER_KEY="1234"
+export FACEBOOK_APP_ID="4567"
 export HOST="0.0.0.0"
 export PORT="8080"
 ```
