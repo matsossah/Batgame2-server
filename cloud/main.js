@@ -1,3 +1,5 @@
+// @TODO: Create `hasUsername` column automatically
+
 Parse.Cloud.beforeSave(Parse.User, (request, response) => {
   if (request.object.isNew()) {
     const username = request.object.get('username');
