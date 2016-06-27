@@ -80,12 +80,17 @@ async function tryToJoinMatch(user) {
 }
 
 Parse.Cloud.define('joinRandomMatch', (request, response) => {
+  if (!request.user) {
+    response.error('User must be authenticated.');
+    return;
+  }
+
   tryToJoinMatch(request.user)
     .then(match => {
       response.success(match);
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       response.error();
     });
 });
