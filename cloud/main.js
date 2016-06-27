@@ -16,20 +16,23 @@ const Game = Parse.Object.extend('Game');
 const ROUND_NB = 3;
 const GAMES_NB = 3;
 
+function createMatchQuery() {
+  return new Parse.Query('Match')
+    .include('participants')
+    .include('rounds')
+    .include('rounds.games')
+    .include('rounds.games.scores');
+}
+
 // @TODO: Parse isn't a good match for this kind of usage.
 // We need a queue so that we can atomically update our match info.
 // @TODO: ACLs on matches so that users can only see their own matches.
 async function tryToJoinMatch(user) {
-  const query = new Parse.Query('Match');
+  const query = createMatchQuery();
   query.ascending('createdAt');
   query.equalTo('open', true);
   query.notEqualTo('participants', user);
-  let match = await query
-    .include('participants')
-    .include('rounds')
-    .include('rounds.games')
-    .include('rounds.games.scores')
-    .first();
+  let match = await query.first();
 
   if (!match) {
     const rounds = [];
@@ -57,16 +60,22 @@ async function tryToJoinMatch(user) {
     await match.save();
   } else {
     await match.save({ open: false });
+
+    if (match.get('participants').length > 2) {
+      // Another user joined the match in between our two requests.
+      // Try again.
+      return await tryToJoinMatch(user);
+    }
+
+    // This empties the participants list on our local model, so we retrieve
+    // them again by running a new query on the match.
+    match.addUnique('participants', user);
+    await match.save();
+    // @WORKAROUND: For some reason Parse does not update our current model
+    // in-place, so we override the reference.
+    match = await createMatchQuery().get(match.id);
   }
 
-  if (!match.get('open') && match.get('participants').length !== 2) {
-    // Another user joined the match in between our two requests.
-    // Try again.
-    return await tryToJoinMatch(user);
-  }
-
-  match.addUnique('participants', user);
-  await match.save();
   return match;
 }
 
