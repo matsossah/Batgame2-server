@@ -9,11 +9,9 @@ const {
   CLIENT_KEY,
   MASTER_KEY,
   FACEBOOK_APP_ID,
-  HOST,
+  SERVER_URL,
   PORT,
 } = process.env;
-
-const serverURL = `http://${HOST}:${PORT}/parse`;
 
 const api = new ParseServer({
   cloud: r('./cloud/main.js'),
@@ -22,7 +20,7 @@ const api = new ParseServer({
   clientKey: CLIENT_KEY,
   masterKey: MASTER_KEY,
   facebookAppIds: [FACEBOOK_APP_ID],
-  serverURL,
+  serverURL: SERVER_URL,
 });
 
 const app = express();
@@ -31,7 +29,7 @@ app.use('/parse', api);
 
 const server = require('http').createServer(app);
 server.listen(PORT, () => {
-  console.log(`Parse server running on ${serverURL}`);
+  console.log(`Parse server running on port ${PORT}`);
 });
 
 ParseServer.createLiveQueryServer(server);

@@ -28,7 +28,7 @@ You must first define the following environment variables:
 * `CLIENT_KEY` The app's client key (public).
 * `MASTER_KEY` The app's master key (private).
 * `FACEBOOK_APP_ID` Facebook app id.
-* `HOST` The server's host name.
+* `SERVER_URL` The URL to the Parse server.
 * `PORT` Port the app should listen on.
 
 Here's an example of development environment variables:
@@ -39,12 +39,12 @@ export APP_ID="MyApp"
 export CLIENT_KEY="1234"
 export MASTER_KEY="1234"
 export FACEBOOK_APP_ID="4567"
-export HOST="0.0.0.0"
+export SERVER_URL="http://0.0.0.0:8080/parse"
 export PORT="8080"
 ```
 
 ## Starting the dashboard
 
 ```
-parse-dashboard --appId $APP_ID --masterKey $MASTER_KEY --serverURL http://$HOST:$PORT/parse
+parse-dashboard --appId $APP_ID --masterKey $MASTER_KEY --serverURL $SERVER_URL
 ```
