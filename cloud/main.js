@@ -24,6 +24,28 @@ function createMatchQuery() {
     .include('rounds.games.scores');
 }
 
+async function createRounds() {
+  const rounds = [];
+  for (let i = 0; i < ROUND_NB; i++) {
+    const games = [];
+    for (let j = 0; j < GAMES_NB; j++) {
+      games.push(new Game({
+        scores: [],
+        gameName: null,
+        gamePicked: false,
+      }));
+    }
+
+    await Parse.Object.saveAll(games);
+    rounds.push(new Round({
+      games,
+    }));
+  }
+
+  await Parse.Object.saveAll(rounds);
+  return rounds;
+}
+
 // @TODO: Parse isn't a good match for this kind of usage.
 // We need a queue so that we can atomically update our match info.
 // @TODO: ACLs on matches so that users can only see their own matches.
@@ -32,31 +54,16 @@ async function tryToJoinMatch(user) {
   query.ascending('createdAt');
   query.equalTo('open', true);
   query.notEqualTo('participants', user);
-  let match = await query.first();
 
+  let match = await query.first();
   if (!match) {
-    const rounds = [];
-    for (let i = 0; i < ROUND_NB; i++) {
-      const games = [];
-      for (let j = 0; j < GAMES_NB; j++) {
-        games.push(new Game({
-          scores: [],
-          gameName: null,
-          gamePicked: false,
-        }));
-      }
-      await Parse.Object.saveAll(games);
-      rounds.push(new Round({
-        games,
-      }));
-    }
-    await Parse.Object.saveAll(rounds);
     match = new Match({
       startedBy: user,
       participants: [user],
-      rounds,
+      rounds: await createRounds(),
       open: true,
     });
+
     await match.save();
   } else {
     await match.save({ open: false });
@@ -94,3 +101,50 @@ Parse.Cloud.define('joinRandomMatch', (request, response) => {
       response.error();
     });
 });
+
+async function joinMatchAgainst(user, username) {
+  const opponent = await new Parse.Query(Parse.User)
+    .equalTo('username', username)
+    .first();
+
+  if (!opponent) {
+    return null;
+  }
+
+  const match = new Match({
+    startedBy: user,
+    participants: [user, opponent],
+    rounds: await createRounds(),
+    open: false,
+  });
+
+  await match.save();
+
+  return match;
+}
+
+Parse.Cloud.define('joinMatchAgainst', (request, response) => {
+  if (!request.user) {
+    response.error('User must be authenticated.');
+    return;
+  }
+
+  if (request.user.username === request.params.username) {
+    response.error('Bad request.');
+    return;
+  }
+
+  joinMatchAgainst(request.user, request.params.username)
+    .then(match => {
+      if (!match) {
+        response.error('Unknown user.');
+      } else {
+        response.success(match);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      response.error();
+    });
+});
+
