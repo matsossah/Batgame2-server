@@ -21,6 +21,20 @@ const api = new ParseServer({
   masterKey: MASTER_KEY,
   facebookAppIds: [FACEBOOK_APP_ID],
   serverURL: SERVER_URL,
+  push: {
+    ios: [
+      {
+        pfx: r('./MateoSossahDev.p12'),
+        bundleId: 'com.coolappsinc.batgame',
+        production: false,
+      },
+      {
+        pfx: r('./MateoSossahProd.p12'),
+        bundleId: 'com.coolappsinc.batgame',
+        production: true,
+      },
+    ],
+  },
 });
 
 const app = express();
