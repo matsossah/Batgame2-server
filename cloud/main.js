@@ -168,8 +168,6 @@ Parse.Cloud.define('registerInstallation', (request, response) => {
 
   const user = request.user;
 
-  Parse.Cloud.useMasterKey();
-
   const installation = new Parse.Installation({
     deviceToken,
     deviceType,
@@ -178,10 +176,10 @@ Parse.Cloud.define('registerInstallation', (request, response) => {
   });
 
   installation.save().then(
-    () => response.success(),
+    () => response.success({}),
     err => {
       console.error(err);
-      response.error();
+      response.error('Error while saving installation');
     }
   );
 });
