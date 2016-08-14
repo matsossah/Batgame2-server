@@ -1,3 +1,5 @@
+import i18n from './i18n';
+
 // @TODO: Create `hasUsername` column automatically
 
 Parse.Cloud.beforeSave(Parse.User, (request, response) => {
@@ -12,6 +14,63 @@ Parse.Cloud.beforeSave(Parse.User, (request, response) => {
 const Match = Parse.Object.extend('Match');
 const Round = Parse.Object.extend('Round');
 const Game = Parse.Object.extend('Game');
+
+async function afterGameSave(gameObj) {
+  const game = await new Parse.Query(Game)
+    .include('scores')
+    .include('scores.user')
+    .get(gameObj.id);
+
+  if (game.get('scores').length === 1) {
+    const round = await new Parse.Query(Round)
+      .equalTo('games', game)
+      .include('games')
+      .include('games.scores')
+      .first();
+
+    const playerFinished = round.get('games')
+      .every(otherGame => otherGame.get('scores').length === 1);
+    if (playerFinished) {
+      const player = game.get('scores')[0].get('user');
+      const matchQuery = new Parse.Query(Match)
+        .equalTo('rounds', round)
+        .include('participants');
+      const match = await matchQuery.first();
+      const otherPlayers = match.get('participants')
+        .filter(participant =>
+          participant.id !== player.id
+        );
+      Parse.Cloud.useMasterKey();
+      const installations = await new Parse.Query(Parse.Installation)
+        .containedIn('user', otherPlayers)
+        .find();
+      await Promise.all(installations.map(installation => {
+        const locale = installation.get('localeIdentifier');
+        return Parse.Push.send({
+          where: new Parse.Query(Parse.Installation).equalTo('objectId', installation.id),
+          data: {
+            alert: i18n(locale, 'YOUR_TURN', player.get('username')),
+          },
+        }, {
+          useMasterKey: true,
+        });
+      }));
+    }
+  }
+}
+
+Parse.Cloud.afterSave('Game', (request, response) => {
+  afterGameSave(request.object)
+    .then(
+      () => {
+        response.success();
+      },
+      err => {
+        console.error(err);
+        response.error();
+      }
+    );
+});
 
 const ROUND_NB = 3;
 const GAMES_NB = 3;
@@ -149,6 +208,7 @@ Parse.Cloud.define('joinMatchAgainst', (request, response) => {
 });
 
 async function addUserToInstallation(user, deviceToken) {
+  Parse.Cloud.useMasterKey();
   const query = new Parse.Query(Parse.Installation);
   query.equalTo('deviceToken', deviceToken);
 
@@ -185,7 +245,7 @@ Parse.Cloud.define('addUserToInstallation', (request, response) => {
 });
 
 Parse.Cloud.define('registerInstallation', (request, response) => {
-  const { deviceType, deviceToken } = request.params;
+  const { deviceType, deviceToken, localeIdentifier } = request.params;
 
   if (!deviceType) {
     response.error('Missing parameter: deviceType');
@@ -195,13 +255,19 @@ Parse.Cloud.define('registerInstallation', (request, response) => {
     response.error('Missing parameter: deviceToken');
     return;
   }
+  if (!localeIdentifier) {
+    response.error('Missing parameter: localeIdentifier');
+    return;
+  }
 
   // Might not be set, will be added later
   const user = request.user;
 
+  Parse.Cloud.useMasterKey();
   const installation = new Parse.Installation({
     deviceToken,
     deviceType,
+    localeIdentifier,
     user,
     channels: ['global'],
   });
