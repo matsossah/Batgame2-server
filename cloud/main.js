@@ -148,3 +148,41 @@ Parse.Cloud.define('joinMatchAgainst', (request, response) => {
     });
 });
 
+Parse.Cloud.define('registerInstallation', (request, response) => {
+  if (!request.user) {
+    response.error('User must be authenticated.');
+    return;
+  }
+
+  const deviceType = request.params.deviceType;
+  const deviceToken = request.params.deviceToken;
+
+  if (!deviceType) {
+    response.error('Missing parameter: deviceType');
+    return;
+  }
+  if (!deviceToken) {
+    response.error('Missing parameter: deviceToken');
+    return;
+  }
+
+  const user = request.user;
+
+  Parse.Cloud.useMasterKey();
+
+  const installation = new Parse.Installation({
+    deviceToken,
+    deviceType,
+    user,
+    channels: ['global'],
+  });
+
+  installation.save().then(
+    () => response.success(),
+    err => {
+      console.error(err);
+      response.error();
+    }
+  );
+});
+
