@@ -148,14 +148,44 @@ Parse.Cloud.define('joinMatchAgainst', (request, response) => {
     });
 });
 
-Parse.Cloud.define('registerInstallation', (request, response) => {
-  if (!request.user) {
+async function addUserToInstallation(user, deviceToken) {
+  const query = new Parse.Query(Parse.Installation);
+  query.equalTo('deviceToken', deviceToken);
+
+  const installation = await query.first();
+
+  await installation.save({ user });
+}
+
+Parse.Cloud.define('addUserToInstallation', (request, response) => {
+  const { user } = request;
+
+  if (!user) {
     response.error('User must be authenticated.');
     return;
   }
 
-  const deviceType = request.params.deviceType;
-  const deviceToken = request.params.deviceToken;
+  const { deviceToken } = request.params;
+
+  if (!deviceToken) {
+    response.error('Missing parameter: deviceToken');
+    return;
+  }
+
+  addUserToInstallation(user, deviceToken)
+    .then(
+      () => {
+        response.success({});
+      },
+      err => {
+        console.error(err);
+        response.error('Error while adding user to installation');
+      }
+    );
+});
+
+Parse.Cloud.define('registerInstallation', (request, response) => {
+  const { deviceType, deviceToken } = request.params;
 
   if (!deviceType) {
     response.error('Missing parameter: deviceType');
@@ -166,6 +196,7 @@ Parse.Cloud.define('registerInstallation', (request, response) => {
     return;
   }
 
+  // Might not be set, will be added later
   const user = request.user;
 
   const installation = new Parse.Installation({
